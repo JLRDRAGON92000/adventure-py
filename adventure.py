@@ -11,7 +11,6 @@ if len(termargs)>1:
 else:
 	debugmode=False;
 
-
 if debugmode:
 	print("");
 	print("Initializing...");
@@ -144,18 +143,39 @@ money.treasure=True;
 # coins
 coins=item();
 coins.name="some valuable coins";
+coins.spec_gndphrase="There are some valuable coins here.";
 coins.cmdaliases=["coins"];
 coins.desc=None;
 coins.weight=2;
 coins.treasure=True;
 
+# vendor_dummy
+vendor_dummy=item();
+vendor_dummy.name="some vending machines";
+vendor_dummy.spec_gndphrase="There are some vending machines here.";
+vendor_dummy.cmdaliases=["machines"];
+vendor_dummy.desc="""\
+The machines do not appear to be functional. Some
+are tipped over on their sides, as though someone
+had used them as blockades."""
+vendor_dummy.weight=400;
+vendor_dummy.takeable=False;
+
+# hammer
+hammer=item();
+hammer.name="a sledgehammer";
+hammer.cmdaliases=["hammer","sledgehammer"];
+hammer.desc=None;
+hammer.weight=9;
+
 # laptop
 laptop=item();
 laptop.name="a laptop";
+laptop.spec_gndphrase="There is a laptop resting on a table nearby.";
 laptop.cmdaliases=["laptop"];
 laptop.desc="The laptop still appears to work.\n\n(Use the \"type\" command to use computers)";
 laptop.weight=4;
-laptop.spec_gndphrase="There is a laptop resting on a table nearby.";
+
 
 if debugmode:
 	print("Done.");
@@ -226,11 +246,15 @@ class cfile:
 	name="";
 	ext="";
 	canopen=True;
+	datemod="";
+	timemod="";
 	data="";
-	def __init__(self,namel,extl,canopenl,datal):
+	def __init__(self,namel,extl,canopenl,datemodl,timemodl,datal):
 		self.name=namel;
 		self.ext=extl;
 		self.canopen=canopenl;
+		self.datemod=datemodl;
+		self.timemod=timemodl;
 		self.data=datal;
 
 class computer:
@@ -251,7 +275,7 @@ class computer:
 
 # comp_laptop
 comp_laptop=computer();
-comp_laptop.hostname="L019385-12";
+comp_laptop.hostname="L066328-12";
 comp_laptop.assoc=laptop;
 comp_laptop.exitmsg="You close the laptop and step back.";
 comp_laptop.exitmsg_inv="You close the laptop and stash it in your inventory.";
@@ -260,11 +284,19 @@ comp_laptop.driveltr="D";
 comp_laptop.drivelbl="OFFLINEDATA";
 comp_laptop.driveser="49F3-AC3B";
 comp_laptop.dirhierarchy={
-	"random.txt":cfile(
-		namel="random.txt",
+	"day28.txt":cfile(
+		namel="day28.txt",
 		extl="txt",
-		datal="lol",
-		canopenl=True
+		canopenl=True,
+		datemodl="03/30/2014",
+		timemodl="08:16 PM",
+		datal="\
+Sunday, March 30, 2014, 8:14 PM\n\
+It's been nearly a month since the invasion began.\n\
+Some of us still manage to survive by hiding out in\n\
+secret passages. However, most of us are still in\n\
+blockaded inside our rooms. Hopefully our hideout\n\
+will hold up. If not, we can at least fight back.",
 	)
 };
 
@@ -286,6 +318,7 @@ def compCmdProcessor(comp,isInv):
 	# Commands recognized by computer
 	dirList=["dir"];
 	fileData=["type"];
+	volInfo=["vol"];
 	returnToGame=["exit"];
 	
 	while True:
@@ -301,14 +334,14 @@ def compCmdProcessor(comp,isInv):
 			else:
 				print(" Volume in drive "+comp.driveltr+" is "+comp.drivelbl);
 			print(" Volume serial number is "+comp.driveser);
-			print("\n Directory of "+comp.driveltr+":\\");
+			print("\n Directory of "+comp.driveltr+":\\\n");
 			for fkey,filel in comp.dirhierarchy.items():
-				formstr="02/28/2014  02:08 PM    {} {}";
-				print(formstr.format(str(len(filel.data)),filel.name));
+				formstr="{0}  {1}    {2} {3}";
+				print(formstr.format(filel.datemod,filel.timemod,str(len(filel.data)),filel.name));
 				numfiles+=1;
 				numbytes+=len(filel.data);
 			print("               {0} File(s)    {1} bytes".format(numfiles,numbytes));
-	
+		
 		elif ccmd in fileData:
 			if len(cargs)<1:
 				print("Bad command or file name");
@@ -319,7 +352,14 @@ def compCmdProcessor(comp,isInv):
 						break;
 				else:
 					print("Bad command or file name");
-	
+		
+		elif ccmd in volInfo:
+			if comp.drivelbl=="":
+				print(" Volume in drive "+comp.driveltr+" has no label.");
+			else:
+				print(" Volume in drive "+comp.driveltr+" is "+comp.drivelbl);
+			print(" Volume serial number is "+comp.driveser+"\n");
+		
 		elif ccmd in returnToGame:
 			if isInv:
 				print(comp.exitmsg_inv);
@@ -401,159 +441,91 @@ null_room.dark=False;
 null_room.diggables=[];
 null_room.items=[];
 
-# Barren moor
-barren_moor=room();
-barren_moor.name="Barren moor";
-barren_moor.desc="""\
-You are on a barren moor. The surrounding area is in ruins,
-and appears to have been abandoned long ago. You see a small
-wooden footbridge to the east.""";
-barren_moor.xpos=0;
-barren_moor.ypos=0;
-barren_moor.zpos=0;
-barren_moor.openwalls=["east"];
-barren_moor.lockwalls=[];
-barren_moor.dark=False;
-barren_moor.diggables=[];
-barren_moor.items=[shovel]
+# Building entrance
+building_entrance=room();
+building_entrance.name="Building entrance";
+building_entrance.desc="""\
+You are in front of a building. The entrance is to
+the north. The doors appear to have been forced
+open."""
+building_entrance.xpos=0;
+building_entrance.ypos=0;
+building_entrance.zpos=0;
+building_entrance.openwalls=["north"];
+building_entrance.dark=True;
+building_entrance.items=[];
 
-# Meadow
-meadow=room();
-meadow.name="Meadow";
-meadow.desc="""\
-You are in a meadow. A dirt path leads to the east towards a
-building, while a bridge leads west.""";
-meadow.xpos=1;
-meadow.ypos=0;
-meadow.zpos=0;
-meadow.openwalls=["east","west"];
-meadow.lockwalls=[];
-meadow.dark=False;
-meadow.diggables=[key];
-meadow.items=[];
+# Lobby
+lobby=room();
+lobby.name="Lobby";
+lobby.desc="""\
+You are in the lobby of a building. Nobody else
+appears to be inside. Hallways lead north and
+east from here, and the exit is to the south.
+It is dark inside."""
+lobby.xpos=0;
+lobby.ypos=1;
+lobby.zpos=0;
+lobby.openwalls=["north","east","south"];
+lobby.dark=True;
+lobby.items=[];
 
-# Winners' room
-winners_room=room();
-winners_room.name="Winners' room";
-winners_room.desc="""\
-You are in a small room, with the words "Winners' Circle"
-written on the walls. There are doors to the north and
-west.""";
-winners_room.xpos=2;
-winners_room.ypos=0;
-winners_room.zpos=0;
-winners_room.openwalls=["west"]
-winners_room.lockwalls=["north"];
-winners_room.dark=False;
-winners_room.diggables=[];
-winners_room.items=[laptop];
+# E/W hallway with stairwell
+e_w_hall_with_stairwell=room();
+e_w_hall_with_stairwell.name="E/W hallway with stairwell";
+e_w_hall_with_stairwell.desc="""\
+You are in an east/west hallway. A stairwell
+leads down from here."""
+e_w_hall_with_stairwell.xpos=1;
+e_w_hall_with_stairwell.ypos=1;
+e_w_hall_with_stairwell.zpos=0;
+e_w_hall_with_stairwell.openwalls=["east","west","down"];
+e_w_hall_with_stairwell.dark=True;
+lobby.items=[];
 
-# Last room
-last_room=room();
-last_room.name="Last room";
-last_room.desc="""\
-This is the last room to be implemented for now. Mounted to the wall,
-there is a chute marked 'put treasures here for points'. There
-are doors to the north and south.""";
-last_room.xpos=2;
-last_room.ypos=1;
-last_room.zpos=0;
-last_room.openwalls=["north"];
-last_room.lockwalls=["south"];
-last_room.dark=False;
-last_room.diggables==[];
-last_room.items=[money,dropchute];
+# Atrium
+atrium=room();
+atrium.name="Atrium";
+atrium.desc="""\
+You are on the lower floor of a building, in
+a large, open area. To the east and west are
+hallways, and there is an exit to the northeast.
+This one has also been forced open."""
+atrium.xpos=1;
+atrium.ypos=1;
+atrium.zpos=-1;
+atrium.openwalls=["east","west","northeast"];
+atrium.dark=True;
+atrium.items=[];
 
-# South end of N/S hallway
-south_end_of_ns_hallway=room();
-south_end_of_ns_hallway.name="South end of N/S hallway";
-south_end_of_ns_hallway.desc="""\
-You are at the south end of a north/south hallway. There is a door
-to the south, and a room to the west.""";
-south_end_of_ns_hallway.xpos=12;
-south_end_of_ns_hallway.ypos=34;
-south_end_of_ns_hallway.zpos=0;
-south_end_of_ns_hallway.openwalls=["north","south","west"];
-south_end_of_ns_hallway.lockwalls=[];
-south_end_of_ns_hallway.dark=False;
-south_end_of_ns_hallway.diggables=[];
-south_end_of_ns_hallway.items=[];
+# Vending machines
+vending_machines=room();
+vending_machines.name="Vending machines";
+vending_machines.desc="""\
+You are at the south end of a north/south
+hallway. To the east is the atrium, and to 
+the west is a door."""
+vending_machines.xpos=0;
+vending_machines.ypos=1;
+vending_machines.zpos=-1;
+vending_machines.openwalls=["east","west","north"];
+vending_machines.dark=True;
+vending_machines.items=[vendor_dummy];
 
-# North end of N/S hallway
-north_end_of_ns_hallway=room();
-north_end_of_ns_hallway.name="North end of N/S hallway";
-north_end_of_ns_hallway.desc="""\
-You are at the north end of a north/south hallway. There are doors
-to the north and east.""";
-north_end_of_ns_hallway.xpos=12;
-north_end_of_ns_hallway.ypos=35;
-north_end_of_ns_hallway.zpos=0;
-north_end_of_ns_hallway.openwalls=["north","south"];
-north_end_of_ns_hallway.lockwalls=[];
-north_end_of_ns_hallway.dark=False;
-north_end_of_ns_hallway.diggables=[];
-north_end_of_ns_hallway.items=[];
-
-# Overlook
-overlook=room();
-overlook.name="Overlook";
-overlook.desc="""\
-You are at the top of a very tall cliff. The cliff wall drops
-off to the north. There is a door to the south leading into a
-building."""
-overlook.xpos=12;
-overlook.ypos=36;
-overlook.zpos=0;
-overlook.openwalls=["north","south"];
-overlook.lockwalls=[];
-overlook.dark=False;
-overlook.diggables=[];
-overlook.items=[];
-
-# Supply closet
-supply_closet=room();
-supply_closet.name="Supply closet";
-supply_closet.desc="""\
-You are in a small supply closet. It appears to have been
-ransacked, and nearly all of the contents are gone. There
-is a door out to the east, and a ladder leads down a hole.""";
-supply_closet.xpos=11;
-supply_closet.ypos=34;
-supply_closet.zpos=0;
-supply_closet.openwalls=["east","down"];
-supply_closet.lockwalls=[];
-supply_closet.dark=True;
-supply_closet.diggables=[];
-supply_closet.items=[];
-
-# SW end of NE/SW passage
-sw_end_of_nesw_passage=room();
-sw_end_of_nesw_passage.name="SW end of NE/SW passage";
-sw_end_of_nesw_passage.desc="""\
-You are at the southwest end of a northeast/southwest passage.
-A ladder leads up into the distance.""";
-sw_end_of_nesw_passage.xpos=11;
-sw_end_of_nesw_passage.ypos=34;
-sw_end_of_nesw_passage.zpos=-1;
-sw_end_of_nesw_passage.openwalls=["up","northeast"];
-sw_end_of_nesw_passage.lockwalls=[];
-sw_end_of_nesw_passage.dark=True;
-sw_end_of_nesw_passage.diggables=[];
-sw_end_of_nesw_passage.items=[];
-
-# NE end of NE/SW passage
-ne_end_of_nesw_passage=room();
-ne_end_of_nesw_passage.name="NE end of NE/SW passage";
-ne_end_of_nesw_passage.desc="""\
-You are at the northeast end of a northeast/southwest passage.""";
-ne_end_of_nesw_passage.xpos=12;
-ne_end_of_nesw_passage.ypos=35;
-ne_end_of_nesw_passage.zpos=-1;
-ne_end_of_nesw_passage.openwalls=["southwest"]
-ne_end_of_nesw_passage.lockwalls=[];
-ne_end_of_nesw_passage.dark=True;
-ne_end_of_nesw_passage.diggables=[];
-ne_end_of_nesw_passage.items=[coins];
+# Room 20 south end
+room_20_southend=room();
+room_20_southend.name="Room 20";
+room_20_southend.desc="""\
+You are at the south end of a large room.
+It appears this room was used as a woodshop,
+as there is woodworking equipment strewn
+throughout the room."""
+room_20_southend.xpos=-1;
+room_20_southend.ypos=1;
+room_20_southend.zpos=-1;
+room_20_southend.openwalls=["east","north"];
+room_20_southend.dark=True;
+room_20_southend.items=[hammer,laptop];
 
 if debugmode:
 	print("Done.");
@@ -669,7 +641,7 @@ if debugmode:
 
 # Post-init variables
 inventory=[lamp];
-currentroom=barren_moor;
+currentroom=building_entrance;
 skipinput=False;
 
 # Initialize treasures
