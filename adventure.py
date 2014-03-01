@@ -56,6 +56,9 @@ roomdict=[];
 # Items
 global itemdict;
 itemdict=[];
+# Computers
+global compdict;
+compdict=[];
 # Vehicles
 global vehicledict;
 vehicledict=[];
@@ -102,14 +105,6 @@ lamp.desc=None;
 lamp.weight=4;
 lamp.treasure=False;
 
-# diamond
-diamond=item();
-diamond.name="a diamond";
-diamond.cmdaliases=["diamond"];
-diamond.desc=None;
-diamond.weight=0.4;
-diamond.treasure=True;
-
 # shovel
 shovel=item();
 shovel.name="a shovel";
@@ -154,42 +149,13 @@ coins.desc=None;
 coins.weight=2;
 coins.treasure=True;
 
-# towel
-towel=item();
-towel.name="a beach towel";
-towel.spec_gndphrase="There is a beach towel on the ground here."
-towel.cmdaliases=["towel"];
-towel.desc=None;
-towel.weight=3;
-
-# gndholedummy
-gndholedummy=item();
-gndholedummy.name="a hole in the floor";
-gndholedummy.takeable=False;
-
-# navtether
-navtether=item();
-navtether.name="a PDA";
-navtether.spec_gndtitle="a curious looking PDA on the ground"
-navtether.cmdaliases=["pda"];
-navtether.desc=None;
-navtether.weight=1;
-navtether.spec_lookaction=lambda xpos,ypos,zpos: print("""\
-When you look at the PDA you see three numbers:
-   """+str(xpos)+"   "+str(ypos)+"   "+str(zpos)+"""
-You wonder what they mean.""");
-
-# labsign
-labsign=item();
-labsign.name="a sign on the wall";
-labsign.cmdaliases=["sign"];
-labsign.desc="""\
-The sign reads "Remember to always bring your navigation tether
-when entering the null zone. Without it, it is extremely easy
-to get lost."\
-"""
-labsign.takeable=False;
-labsign.silent=True;
+# laptop
+laptop=item();
+laptop.name="a laptop";
+laptop.cmdaliases=["laptop"];
+laptop.desc="The laptop still appears to work.\n\n(Use the \"type\" command to use computers)";
+laptop.weight=4;
+laptop.spec_gndphrase="There is a laptop resting on a table nearby.";
 
 if debugmode:
 	print("Done.");
@@ -212,11 +178,16 @@ if debugmode:
 	print("Initializing vehicles...");
 
 class vehicle:
+	# Identification
 	name="";
 	desc="";
 	cmdaliases=[];
 	desc=None;
 	vclass=0;
+	# Position
+	xpos=None;
+	ypos=None;
+	zpos=None;
 	def __init__(self):
 		vehicledict.append(self);
 
@@ -240,6 +211,126 @@ boat.name="a boat";
 boat.cmdaliases=["boat"];
 boat.desc=None;
 boat.vclass=4;
+
+if debugmode:
+	print("Done.");
+
+#############
+# Computers #
+#############
+
+if debugmode:
+	print("Initializing computers...");
+
+class cfile:
+	name="";
+	ext="";
+	canopen=True;
+	data="";
+	def __init__(self,namel,extl,canopenl,datal):
+		self.name=namel;
+		self.ext=extl;
+		self.canopen=canopenl;
+		self.data=datal;
+
+class computer:
+	# Identification
+	hostname="";
+	availusers=None;
+	assoc=None;
+	exitmsg="";
+	exitmsg_inv=""
+	portable=False;
+	# File system
+	driveltr="C"
+	drivelbl="";
+	driveser="0000-0000";
+	dirhierarchy={};
+	def __init__(self):
+		compdict.append(self);
+
+# comp_laptop
+comp_laptop=computer();
+comp_laptop.hostname="L019385-12";
+comp_laptop.assoc=laptop;
+comp_laptop.exitmsg="You close the laptop and step back.";
+comp_laptop.exitmsg_inv="You close the laptop and stash it in your inventory.";
+comp_laptop.portable=True;
+comp_laptop.driveltr="D";
+comp_laptop.drivelbl="OFFLINEDATA";
+comp_laptop.driveser="49F3-AC3B";
+comp_laptop.dirhierarchy={
+	"random.txt":cfile(
+		namel="random.txt",
+		extl="txt",
+		datal="lol",
+		canopenl=True
+	)
+};
+
+def compcmdinterpret(command):
+	command=str(command).lower();
+	cmds="";
+	cmdl=[];
+	for cmdc in command:
+		if cmdc==" " or cmdc=="\n" or cmdc=="\t":
+			cmdl.append(cmds);
+			cmds="";
+		else:
+			cmds=cmds+cmdc;	   
+	cmd=cmdl[0];
+	args=cmdl[1:];
+	return cmd,args;
+
+def compCmdProcessor(comp,isInv):
+	# Commands recognized by computer
+	dirList=["dir"];
+	fileData=["type"];
+	returnToGame=["exit"];
+	
+	while True:
+		# Read input
+		ccmdin=str(input(comp.driveltr+":\\>"))+"\n";
+		ccmd,cargs=compcmdinterpret(ccmdin);
+	
+		if ccmd in dirList:
+			numfiles=0;
+			numbytes=0;
+			if comp.drivelbl=="":
+				print(" Volume in drive "+comp.driveltr+" has no label.");
+			else:
+				print(" Volume in drive "+comp.driveltr+" is "+comp.drivelbl);
+			print(" Volume serial number is "+comp.driveser);
+			print("\n Directory of "+comp.driveltr+":\\");
+			for fkey,filel in comp.dirhierarchy.items():
+				formstr="02/28/2014  02:08 PM    {} {}";
+				print(formstr.format(str(len(filel.data)),filel.name));
+				numfiles+=1;
+				numbytes+=len(filel.data);
+			print("               {0} File(s)    {1} bytes".format(numfiles,numbytes));
+	
+		elif ccmd in fileData:
+			if len(cargs)<1:
+				print("Bad command or file name");
+			else:
+				for fkey,filel in comp.dirhierarchy.items():
+					if filel.name==cargs[0]:
+						print(filel.data);
+						break;
+				else:
+					print("Bad command or file name");
+	
+		elif ccmd in returnToGame:
+			if isInv:
+				print(comp.exitmsg_inv);
+			else:
+				print(comp.exitmsg);
+			return 0;
+	
+		elif ccmd=="":
+			continue;
+		else:
+			print("Bad command or file name");
 
 if debugmode:
 	print("Done.");
@@ -355,7 +446,7 @@ winners_room.openwalls=["west"]
 winners_room.lockwalls=["north"];
 winners_room.dark=False;
 winners_room.diggables=[];
-winners_room.items=[];
+winners_room.items=[laptop];
 
 # Last room
 last_room=room();
@@ -371,7 +462,7 @@ last_room.openwalls=["north"];
 last_room.lockwalls=["south"];
 last_room.dark=False;
 last_room.diggables==[];
-last_room.items=[diamond,money,dropchute];
+last_room.items=[money,dropchute];
 
 # South end of N/S hallway
 south_end_of_ns_hallway=room();
@@ -397,7 +488,7 @@ to the north and east.""";
 north_end_of_ns_hallway.xpos=12;
 north_end_of_ns_hallway.ypos=35;
 north_end_of_ns_hallway.zpos=0;
-north_end_of_ns_hallway.openwalls=["north","south","east"];
+north_end_of_ns_hallway.openwalls=["north","south"];
 north_end_of_ns_hallway.lockwalls=[];
 north_end_of_ns_hallway.dark=False;
 north_end_of_ns_hallway.diggables=[];
@@ -434,23 +525,6 @@ supply_closet.lockwalls=[];
 supply_closet.dark=True;
 supply_closet.diggables=[];
 supply_closet.items=[];
-
-# Laboratory
-laboratory=room();
-laboratory.name="Laboratory";
-laboratory.desc="""\
-You are in a laboratory. The place appears abandoned, and
-most of the experiments have been removed. However, there
-is a rather curious portal to the east, and a sign on the
-wall.""";
-laboratory.xpos=13;
-laboratory.ypos=35;
-laboratory.zpos=0;
-laboratory.openwalls=["west","east"];
-laboratory.lockwalls=[];
-laboratory.dark=True;
-laboratory.diggables=[];
-laboratory.items=[navtether,labsign];
 
 # SW end of NE/SW passage
 sw_end_of_nesw_passage=room();
@@ -576,6 +650,7 @@ combine=["put"];
 # Other general commands
 look=["look","l","read","examine"];
 dig=["dig"];
+compinteract=["type"];
 helpcmd=["help"];
 quit=["quit"];
 scorecmd=["score"];
@@ -985,6 +1060,16 @@ while True:
 		else:
 			print("You have nothing with which to dig.");
 	
+	# Type
+	elif cmd in compinteract:
+		for compl in compdict:
+			if compl.assoc in currentroom.items:
+				compCmdProcessor(compl,False);
+			elif compl.assoc in inventory and compl.portable:
+				compCmdProcessor(compl,True);
+			else:
+				print("There is nothing here on which you could type.");
+	
 	# Score
 	elif cmd in scorecmd:
 		scoref();
@@ -1122,7 +1207,7 @@ while True:
 		print("# AVAILABLE COMMANDS:");
 		print("# Movement: n s e w u d ne se nw sw in out");
 		print("# Inventory: take drop put inventory i");
-		print("# General: look l dig score quit");
+		print("# General: look l dig type score quit");
 		if debugmode:
 			print("# Cheats: cheats noclip god give setscore takeeverything spawn delete");
 	
