@@ -1,7 +1,9 @@
 ### Libraries ###
 import random;
 import sys;
+# Import any additional needed libraries here #
 
+# NO MODIFICATION ZONE (DO NOT MODIFY ANYHTING UP UNTIL "END NO MODIFICATION ZONE")
 ### Debug mode ###
 termargs=sys.argv;
 
@@ -24,9 +26,14 @@ if debugmode:
 
 # Main variables
 cmd="nil";
+# END NO MODIFICATION ZONE
+
+# Position (Change to the player's XYZ starting position)
 x=0;
 y=0;
 z=0;
+
+# NO MODIFICATION ZONE (After this one, these will always be abbreviated as "NMZ")
 inventory=[];
 currentroom=None;
 nummoves=0;
@@ -40,10 +47,12 @@ cheatmode=False;
 noclip=False;
 takeeverything=False;
 godmode=False;
+# END NO MODIFICATION ZONE
 
 # Environment-affecting item-spec variables
 ### Define them here ###
 
+# NMZ
 if debugmode:
 	print("Done.");
 
@@ -54,6 +63,8 @@ if debugmode:
 if debugmode:
 	print("Initializing global dictionaries...");
 
+### Dictionaries ###
+### REQUIRED FOR FUNCTIONALITY (MODIFY AT YOUR OWN RISK!) ###
 # Rooms
 global roomdict;
 roomdict=[];
@@ -78,7 +89,11 @@ portaldict=[];
 # Death zones
 global killzonedict;
 killzonedict=[];
+# END NMZ
 
+### Define any additional dictionaries here ###
+
+# NMZ
 if debugmode:
 	print("Done.");
 
@@ -89,6 +104,7 @@ if debugmode:
 if debugmode:
 	print("Initializing items...");
 
+# END NMZ
 class item:
 	# Identification
 	name="";
@@ -115,8 +131,11 @@ class item:
 	spec_takeaction=None;
 	spec_putaction=None;
 	spec_breakaction=None;
+	### Define any additional properties for items under the appropriate header ###
+	# NMZ
 	def __init__(self):
 		itemdict.append(self);
+	# END NMZ
 
 # lamp (REQUIRED FOR FUNCTIONALITY)
 lamp=item();
@@ -142,6 +161,7 @@ key.treasure=False;
 # If your item is used for breaking things add this line after the declaration:
 #	breakingitems.append(<your item name here);
 
+# NMZ
 if debugmode:
 	print("Done.");
 
@@ -162,6 +182,7 @@ if debugmode:
 if debugmode:
 	print("Initializing vehicles...");
 
+# END NMZ
 class vehicle:
 	# Identification
 	name="";
@@ -176,12 +197,16 @@ class vehicle:
 	xpos=None;
 	ypos=None;
 	zpos=None;
+	### Define any additional properties for vehicles under the appropriate header ###
+	# NMZ
 	def __init__(self):
 		vehicledict.append(self);
+	# END NMZ
 
 ### Define vehicles here ###
 # Remember to adhere to the Vehicle Class System when designating vehicle classes (see above) #
 
+# NMZ
 if debugmode:
 	print("Done.");
 
@@ -192,6 +217,7 @@ if debugmode:
 if debugmode:
 	print("Initializing computers...");
 
+# END NMZ
 class cfile:
 	name="";
 	ext="";
@@ -199,7 +225,8 @@ class cfile:
 	datemod="";
 	timemod="";
 	data="";
-	def __init__(self,namel,extl,canopenl,datemodl,timemodl,datal):
+	### Define any additional properties for files here (Remember to add them to the __init__ method) ###
+	def __init__(self,namel,extl,canopenl,datemodl,timemodl,datal): # Remember to add any additional properties to the parameters and content of this method
 		self.name=namel;
 		self.ext=extl;
 		self.canopen=canopenl;
@@ -220,11 +247,15 @@ class computer:
 	drivelbl="";
 	driveser="0000-0000";
 	dirhierarchy={};
+	### Define any additional properties of computer objects under the appropriate header ###
+	# NMZ
 	def __init__(self):
 		compdict.append(self);
+	# END NMZ
 
 ### Define computers here ###
 
+# NMZ
 # REQUIRED FOR FUNCTIONALITY #
 def compcmdinterpret(command):
 	command=str(command).lower();
@@ -239,6 +270,7 @@ def compcmdinterpret(command):
 	cmd=cmdl[0];
 	args=cmdl[1:];
 	return cmd,args;
+# END NMZ
 
 # REQUIRED FOR FUNCTIONALITY #
 def compCmdProcessor(comp,isInv):
@@ -319,6 +351,7 @@ def compCmdProcessor(comp,isInv):
 		else:
 			print("Bad command or file name");
 
+# NMZ
 if debugmode:
 	print("Done.");
 
@@ -331,8 +364,8 @@ if debugmode:
 if debugmode:
 	print("Initializing rooms...");
 
-# DO NOT CHANGE #
 walls_all=["north","south","east","west","up","down","northeast","northwest","southeast","southwest"];
+# END NMZ
 
 class room:
 	# Identification
@@ -361,6 +394,7 @@ class room:
 	vehicles=[];
 	
 	# Functions
+	# NMZ
 	def __init__(self):
 		roomdict.append(self);
 	def openwall(self,direction):
@@ -370,6 +404,8 @@ class room:
 	def closewall(self,direction):
 		self.openwalls.remove(direction);
 		self.lockwalls.remove(direction);
+	# END NMZ
+	### Define any additional properties of rooms under the appropriate heading ###
 
 # Null room (REQUIRED FOR FUNCTIONALITY)
 null_room=room();
@@ -389,7 +425,7 @@ null_room.dark=False;
 null_room.diggables=[];
 null_room.items=[];
 
-### Define rooms here ###
+### Define additional rooms here ###
 
 if debugmode:
 	print("Done.");
@@ -487,13 +523,15 @@ if debugmode:
 
 # Post-init variables
 inventory.append(lamp);
-currentroom=building_entrance;
+# currentroom=<the name of your starting room here> (It must match up with your starting XYZ coordinates!) (Remember to remove this comment text and uncomment this line);
 skipinput=False;
 
+# NMZ
 # Initialize treasures
 for iteml in itemdict:
 	if iteml.treasure:
 		maxscore+=10;
+# END NMZ
 
 #############
 # Functions #
