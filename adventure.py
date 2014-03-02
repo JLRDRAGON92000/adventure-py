@@ -469,7 +469,7 @@ def compCmdProcessor(comp,isInv):
 						if filel.canopen:
 							print(filel.data);
 							break;
-						elif !filel.canopen and filel.canprint:
+						elif (not filel.canopen and filel.canprint:
 							print("Access allowed only for printing");
 							break;
 						else:
@@ -491,7 +491,7 @@ def compCmdProcessor(comp,isInv):
 			else:
 				for fkey,filel in comp.dirhierarchy.items():
 					if filel.name==cargs[0]:
-						if !filel.canprint:
+						if not filel.canprint:
 							print("No print access for this file");
 							break;
 						elif comp.assoc.connectedUSB:
