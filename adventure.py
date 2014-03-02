@@ -27,6 +27,8 @@ cmd="nil";
 x=0;
 y=0;
 z=0;
+inventory=[];
+currentroom=None;
 nummoves=0;
 noitems=False;
 score=0;
@@ -38,6 +40,9 @@ cheatmode=False;
 noclip=False;
 takeeverything=False;
 godmode=False;
+
+# Environment-affecting item-spec variables
+printer_hasPower=False;
 
 if debugmode:
 	print("Done.");
@@ -92,7 +97,16 @@ class item:
 	takeable=True;
 	silent=False;
 	treasuredrop=False;
+	tethered=False;
+	# Messages
+	tethered_dropmsg=None;
+	spec_takemsg=None;
+	spec_putmsg=None;
+	# Special actions
+	spec_loopaction=None;
 	spec_lookaction=None;
+	spec_takeaction=None;
+	spec_putaction=None;
 	def __init__(self):
 		itemdict.append(self);
 
@@ -168,6 +182,62 @@ hammer.cmdaliases=["hammer","sledgehammer"];
 hammer.desc=None;
 hammer.weight=9;
 
+# powercord
+powercord=item();
+powercord.name="the wall end of a power cord";
+powercord.spec_gndtitle="a power cord on the ground";
+powercord.cmdaliases=["cord","power"];
+powercord.desc=None;
+powercord.weight=1;
+powercord.tethered=True;
+powercord.tethered_dropmsg="As you leave, you drop the power cord by the printer.";
+
+# usbcable
+usbcable=item();
+usbcable.name="the computer end of a USB cable";
+usbcable.spec_gndtitle="a USB cable on the ground";
+usbcable.cmdaliases=["usb","cable"];
+usbcable.desc=None;
+usbcable.weight=1;
+usbcable.tethered=True;
+usbcable.tethered_dropmsg="You unplug the USB cable and set it by the printer.";
+
+# printer
+printer=item();
+printer.name="a printer";
+printer.spec_gndphrase="The printer's power cable is disconnected.";
+printer.cmdaliases=["printer"];
+printer.desc="The printer has a power cord and a USB\ncable attached to it.";
+printer.weight=200;
+printer.takeable=False;
+
+# printedpage
+class printedpage(item):
+	def __init__(self,pagecontent):
+		self.name="a printed page";
+		self.desc="The page says:\n"+pagecontent;
+		self.cmdaliases=["page","printed"];
+		self.weight=0;
+		itemdict.append(self);
+
+# walloutlet_dummy
+walloutlet_dummy=item();
+walloutlet_dummy.name="an outlet";
+walloutlet_dummy.cmdaliases=["outlet"];
+walloutlet_dummy.desc="It is a standard 110 volt outlet with 4 ports.";
+walloutlet_dummy.weight=0;
+walloutlet_dummy.takeable=False;
+walloutlet_dummy.silent=True;
+def walloutlet_dummy_spec_putaction(other):
+	if other==powercord:
+		printer_hasPower=True;
+		print("Done.");
+	else:
+		print("What exactly are you trying to do anyway?");
+	inventory.remove(other);
+walloutlet_dummy.spec_putaction=walloutlet_dummy_spec_putaction;
+del walloutlet_dummy_spec_putaction;
+
 # laptop
 laptop=item();
 laptop.name="a laptop";
@@ -175,7 +245,19 @@ laptop.spec_gndphrase="There is a laptop resting on a table nearby.";
 laptop.cmdaliases=["laptop"];
 laptop.desc="The laptop still appears to work.\n\n(Use the \"type\" command to use computers)";
 laptop.weight=4;
+laptop.connectedUSB=False;
+def laptop_spec_loopaction():
+	if not (usbcable in inventory):
+		laptop.connectedUSB=False;
+laptop.spec_loopaction=laptop_spec_loopaction;
+del laptop_spec_loopaction;
 
+def laptop_spec_putaction(other):
+	if other==usbcable:
+		laptop.connectedUSB=True;
+		print("Done.");
+laptop.spec_putaction=laptop_spec_putaction;
+del laptop_spec_putaction;
 
 if debugmode:
 	print("Done.");
@@ -319,6 +401,7 @@ def compCmdProcessor(comp,isInv):
 	dirList=["dir"];
 	fileData=["type"];
 	volInfo=["vol"];
+	printFile=["print"];
 	returnToGame=["exit"];
 	
 	while True:
@@ -359,6 +442,21 @@ def compCmdProcessor(comp,isInv):
 			else:
 				print(" Volume in drive "+comp.driveltr+" is "+comp.drivelbl);
 			print(" Volume serial number is "+comp.driveser+"\n");
+		
+		elif ccmd in printFile:
+			if len(cargs)<1:
+				print("Bad command or file name");
+			else:
+				for fkey,filel in comp.dirhierarchy.items():
+					if filel.name==cargs[0]:
+						if comp.assoc.connectedUSB:
+							currentroom.items.append(printedpage(filel.data));
+							break;
+						else:
+							print("No print device found");
+							break;
+				else:
+					print("Bad command or file name");
 		
 		elif ccmd in returnToGame:
 			if isInv:
@@ -441,6 +539,8 @@ null_room.dark=False;
 null_room.diggables=[];
 null_room.items=[];
 
+### Entering the building ###
+
 # Building entrance
 building_entrance=room();
 building_entrance.name="Building entrance";
@@ -455,18 +555,20 @@ building_entrance.openwalls=["north"];
 building_entrance.dark=True;
 building_entrance.items=[];
 
+### First floor ###
+
 # Lobby
 lobby=room();
 lobby.name="Lobby";
 lobby.desc="""\
 You are in the lobby of a building. Nobody else
-appears to be inside. Hallways lead north and
-east from here, and the exit is to the south.
-It is dark inside."""
+appears to be inside. A hallway leads east from
+here, there is an improvised barrier to the north,
+and the exit is to the south. It is dark inside."""
 lobby.xpos=0;
 lobby.ypos=1;
 lobby.zpos=0;
-lobby.openwalls=["north","east","south"];
+lobby.openwalls=["east","south"];
 lobby.dark=True;
 lobby.items=[];
 
@@ -474,14 +576,19 @@ lobby.items=[];
 e_w_hall_with_stairwell=room();
 e_w_hall_with_stairwell.name="E/W hallway with stairwell";
 e_w_hall_with_stairwell.desc="""\
-You are in an east/west hallway. A stairwell
-leads down from here."""
+You are in an east/west hallway. However, an
+improvised barrier has been built to the east.
+A stairwell leads down from here."""
 e_w_hall_with_stairwell.xpos=1;
 e_w_hall_with_stairwell.ypos=1;
 e_w_hall_with_stairwell.zpos=0;
-e_w_hall_with_stairwell.openwalls=["east","west","down"];
+e_w_hall_with_stairwell.openwalls=["west","down"];
 e_w_hall_with_stairwell.dark=True;
 lobby.items=[];
+
+
+
+### Ground floor ###
 
 # Atrium
 atrium=room();
@@ -489,16 +596,19 @@ atrium.name="Atrium";
 atrium.desc="""\
 You are on the lower floor of a building, in
 a large, open area. To the east and west are
-hallways, and there is an exit to the northeast.
-This one has also been forced open."""
+hallways. There is an exit to the northeast,
+but it has been heavily boarded up. Stairs
+lead up from here."""
 atrium.xpos=1;
 atrium.ypos=1;
 atrium.zpos=-1;
-atrium.openwalls=["east","west","northeast"];
+atrium.openwalls=["east","west","northeast","up"];
 atrium.dark=True;
 atrium.items=[];
 
-# Vending machines
+# North wing hallway (Rooms 20-32) #
+
+# Vending machines (Room 20S)
 vending_machines=room();
 vending_machines.name="Vending machines";
 vending_machines.desc="""\
@@ -512,6 +622,92 @@ vending_machines.openwalls=["east","west","north"];
 vending_machines.dark=True;
 vending_machines.items=[vendor_dummy];
 
+# N/S hallway (Rooms 20N/25)
+n_s_hallway_20_25=room();
+n_s_hallway_20_25.name="N/S hallway";
+n_s_hallway_20_25.desc="""\
+You are in a north/south hallway. There
+are doors to the east and west."""
+n_s_hallway_20_25.xpos=0;
+n_s_hallway_20_25.ypos=2;
+n_s_hallway_20_25.zpos=-1;
+n_s_hallway_20_25.openwalls=["north","south","east","west"];
+n_s_hallway_20_25.dark=True;
+n_s_hallway_20_25.items=[];
+
+# N/S hallway (Rooms 26/27)
+n_s_hallway_26_27=room();
+n_s_hallway_26_27.name="N/S hallway";
+n_s_hallway_26_27.desc="""\
+You are in a north/south hallway. There
+are doors to the east and west."""
+n_s_hallway_26_27.xpos=0;
+n_s_hallway_26_27.ypos=3;
+n_s_hallway_26_27.zpos=-1;
+n_s_hallway_26_27.openwalls=["north","south","east","west"];
+n_s_hallway_26_27.dark=True;
+n_s_hallway_26_27.items=[];
+
+# N/S hallway (Rooms 28/29)
+n_s_hallway_28_29=room();
+n_s_hallway_28_29.name="N/S hallway";
+n_s_hallway_28_29.desc="""\
+You are in a north/south hallway. There
+are doors to the east and west."""
+n_s_hallway_28_29.xpos=0;
+n_s_hallway_28_29.ypos=4;
+n_s_hallway_28_29.zpos=-1;
+n_s_hallway_28_29.openwalls=["north","south","east","west"];
+n_s_hallway_28_29.dark=True;
+n_s_hallway_28_29.items=[];
+
+# N/S/W junction (Stairs/Printer area)
+n_s_w_junction_stairs_printer=room();
+n_s_w_junction_stairs_printer.name="N/S hallway";
+n_s_w_junction_stairs_printer.desc="""\
+You are at a junction of 3 paths. One leads
+to the west, another leads to the south, and
+a door leads north into a room."""
+n_s_w_junction_stairs_printer.xpos=0;
+n_s_w_junction_stairs_printer.ypos=5;
+n_s_w_junction_stairs_printer.zpos=-1;
+n_s_w_junction_stairs_printer.openwalls=["north","south","west"];
+n_s_w_junction_stairs_printer.dark=True;
+n_s_w_junction_stairs_printer.items=[];
+
+# Stairs area (Ground floor, north wing)
+stairs_area_g_nwing=room();
+stairs_area_g_nwing.name="Stairwell";
+stairs_area_g_nwing.desc="""\
+You are in a room surrounded by a metal
+framework, that appears as though it once
+contained glass. Stairs lead up from here,
+and there are doors to the south and east."""
+stairs_area_g_nwing.xpos=0;
+stairs_area_g_nwing.ypos=6;
+stairs_area_g_nwing.zpos=-1;
+stairs_area_g_nwing.openwalls=["east","up","south"];
+stairs_area_g_nwing.dark=True;
+stairs_area_g_nwing.items=[];
+
+# Printer area (Rooms 30,32)
+printer_area=room();
+printer_area.name="Printer area";
+printer_area.desc="""\
+You are in a small room at the end of the
+hallway. In here there are some sofas, and
+a large printer. There is a wall outlet nearby.
+There are doors to the north and west, and the
+hallway is to the east."""
+printer_area.xpos=-1;
+printer_area.ypos=5;
+printer_area.zpos=-1;
+printer_area.openwalls=["east","west","north"];
+printer_area.dark=True;
+printer_area.items=[printer,powercord,usbcable,walloutlet_dummy];
+
+# Rooms 20-32 #
+
 # Room 20 south end
 room_20_southend=room();
 room_20_southend.name="Room 20";
@@ -519,13 +715,30 @@ room_20_southend.desc="""\
 You are at the south end of a large room.
 It appears this room was used as a woodshop,
 as there is woodworking equipment strewn
-throughout the room."""
+throughout the room. There is a door to the
+east."""
 room_20_southend.xpos=-1;
 room_20_southend.ypos=1;
 room_20_southend.zpos=-1;
 room_20_southend.openwalls=["east","north"];
 room_20_southend.dark=True;
 room_20_southend.items=[hammer,laptop];
+
+# Room 20 north end
+room_20_northend=room();
+room_20_northend.name="Room 20";
+room_20_northend.desc="""\
+You are at the north end of a large room.
+It appears this room was used as a woodshop,
+as there is woodworking equipment strewn
+throughout the room. There is a door to the
+east."""
+room_20_northend.xpos=-1;
+room_20_northend.ypos=2;
+room_20_northend.zpos=-1;
+room_20_northend.openwalls=["east","south"];
+room_20_northend.dark=True;
+room_20_northend.items=[];
 
 if debugmode:
 	print("Done.");
@@ -640,7 +853,7 @@ if debugmode:
 	print("Done.");
 
 # Post-init variables
-inventory=[lamp];
+inventory.append(lamp);
 currentroom=building_entrance;
 skipinput=False;
 
@@ -739,7 +952,7 @@ def cmdinterpret(command):
 	args=cmdl[1:];
 	return cmd,args;
 
-# Movement
+# Check whether the player can actually move in that direction
 def chkmove(_direction):
 	if _direction not in currentroom.openwalls and _direction not in currentroom.lockwalls:
 		print("You can't go that way.");
@@ -749,6 +962,18 @@ def chkmove(_direction):
 		return False;
 	else:
 		return True;
+
+# Remove tethered items from the player's inventory before leaving a room
+def tethereditems():
+	itemf=False;
+	il=0;
+	for iteml in inventory[:]:
+		if iteml.tethered:
+			itemf=True;
+			inventory.remove(iteml);
+			currentroom.items.append(iteml);
+			print(iteml.tethered_dropmsg);
+			il+=1;
 
 if debugmode:
 	print("Done.");
@@ -765,6 +990,10 @@ print("");
 drawLocation();
 while True:
 	### Checks done each loop ###
+	for iteml in inventory:
+		if iteml.spec_loopaction!=None:
+			iteml.spec_loopaction();
+	
 	if (not currentroom.dark) or (lamp in inventory):
 		nummoves=0;
 	nummoves+=1;
@@ -775,6 +1004,11 @@ while True:
 		noitems=True;
 	else:
 		noitems=False;
+	
+	if printer_hasPower==True:
+		printer.spec_gndphrase="The printer is powered on.";
+	else:
+		printer.spec_gndphrase="The printer's power cable is disconnected.";
 	
 	### Read and interpret commands ###
 	if not skipinput:
@@ -789,6 +1023,7 @@ while True:
 	# Cardinal directions
 	if cmd in north:
 		if chkmove("north") or noclip:
+			tethereditems();
 			y+=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
@@ -796,6 +1031,7 @@ while True:
 			drawLocation();
 	elif cmd in south:
 		if chkmove("south") or noclip:
+			tethereditems();
 			y-=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
@@ -803,6 +1039,7 @@ while True:
 			drawLocation();
 	elif cmd in east:
 		if chkmove("east") or noclip:
+			tethereditems();
 			x+=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
@@ -810,6 +1047,7 @@ while True:
 			drawLocation();
 	elif cmd in west:
 		if chkmove("west") or noclip:
+			tethereditems();
 			x-=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
@@ -819,6 +1057,7 @@ while True:
 	# Secondary directions
 	elif cmd in northeast:
 		if chkmove("northeast") or noclip:
+			tethereditems();
 			y+=1;
 			x+=1;
 			killchk(x,y,z);
@@ -827,6 +1066,7 @@ while True:
 			drawLocation();
 	elif cmd in northwest:
 		if chkmove("northwest") or noclip:
+			tethereditems();
 			y+=1;
 			x-=1;
 			killchk(x,y,z);
@@ -835,6 +1075,7 @@ while True:
 			drawLocation();
 	elif cmd in southeast:
 		if chkmove("southeast") or noclip:
+			tethereditems();
 			y-=1;
 			x+=1;
 			killchk(x,y,z);
@@ -843,6 +1084,7 @@ while True:
 			drawLocation();
 	elif cmd in southwest:
 		if chkmove("southwest") or noclip:
+			tethereditems();
 			y-=1;
 			x-=1;
 			killchk(x,y,z);
@@ -853,6 +1095,7 @@ while True:
 	# Vertical directions
 	elif cmd in up:
 		if chkmove("up") or noclip:
+			tethereditems();
 			z+=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
@@ -860,6 +1103,7 @@ while True:
 			drawLocation();
 	elif cmd in down:
 		if chkmove("down") or noclip:
+			tethereditems();
 			z-=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
@@ -967,8 +1211,13 @@ while True:
 						itemii=itemx;
 						break;
 				else:
-					print("That indirect object is not here.");
-					continue;
+					for ixx,itemxx in enumerate(inventory):
+						if args[2] in itemxx.cmdaliases:
+							itemii=itemxx;
+							break;
+					else:
+						print("That indirect object is not here.");
+						continue;
 			
 			if itemii.treasuredrop:
 				print("You hear it slide down the chute and into the distance.")
@@ -977,6 +1226,8 @@ while True:
 					if score<maxscore:
 						score+=10;
 					scoref();
+			elif itemii.spec_putaction!=None:
+				itemii.spec_putaction(itemi);
 	
 	# Inventory
 	elif cmd in invcmd:
@@ -997,7 +1248,7 @@ while True:
 					else:
 						print(itemname);
 					del itemname;
-		
+	
 	### General commands ###
 	
 	# Look
