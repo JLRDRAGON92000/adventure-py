@@ -495,7 +495,7 @@ def compCmdProcessor(comp,isInv):
 							print("No print access for this file");
 							break;
 						elif comp.assoc.connectedUSB:
-							currentroom.items.append(printedpage(filel.data));
+							currentroom.items.append(printedpage(filel.name,filel.data));
 							print("Printed 1 Page(s)");
 							print("Notice: In the game, refer to printed pages by their filenames");
 							break;
