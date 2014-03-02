@@ -393,7 +393,9 @@ Friday, March 14, 2014, 2:11 PM\n\
 Some of the guys in charge of fortifying room 28 told\n\
 us that they built an underground hideout behind the\n\
 podium. However, we don't want to go over there, for\n\
-fear of compromising our own shelter."
+fear of compromising our own shelter.\n\
+Also, I just realized that I\'m not going to get my\n\
+prizes for selling all those cookies."
 	),
 	"key.txt":cfile(
 		namel="key.txt",
