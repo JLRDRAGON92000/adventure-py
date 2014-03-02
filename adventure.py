@@ -60,6 +60,9 @@ roomdict=[];
 # Items
 global itemdict;
 itemdict=[];
+# Items that can be used to break stuff using the "break" command
+global breakingitems;
+breakingitems=[];
 # Computers
 global compdict;
 compdict=[];
@@ -102,11 +105,13 @@ class item:
 	tethered_dropmsg=None;
 	spec_takemsg=None;
 	spec_putmsg=None;
+	treasure_dropmsg=None;
 	# Special actions
 	spec_loopaction=None;
 	spec_lookaction=None;
 	spec_takeaction=None;
 	spec_putaction=None;
+	spec_breakaction=None;
 	def __init__(self):
 		itemdict.append(self);
 
@@ -117,14 +122,6 @@ lamp.cmdaliases=["lamp"];
 lamp.desc=None;
 lamp.weight=4;
 lamp.treasure=False;
-
-# shovel
-shovel=item();
-shovel.name="a shovel";
-shovel.cmdaliases=["shovel"];
-shovel.desc=None;
-shovel.weight=10;
-shovel.treasure=False;
 
 # key
 key=item();
@@ -138,30 +135,22 @@ key.treasure=False;
 
 # dropchute
 dropchute=item();
-dropchute.name="a chute";
-dropchute.cmdaliases=["chute"];
+dropchute.name="a trophy case";
+dropchute.cmdaliases=["case"];
 dropchute.desc=None;
 dropchute.weight=0;
 dropchute.takeable=False;
 dropchute.silent=True;
 dropchute.treasuredrop=True;
+dropchute.treasure_dropmsg="You put it into the case.";
 
-# money
-money=item();
-money.name="a $100 bill";
-money.cmdaliases=["bill"];
-money.desc=None;
-money.weight=0.1;
-money.treasure=True;
-
-# coins
-coins=item();
-coins.name="some valuable coins";
-coins.spec_gndphrase="There are some valuable coins here.";
-coins.cmdaliases=["coins"];
-coins.desc=None;
-coins.weight=2;
-coins.treasure=True;
+# trophy
+trophy=item();
+trophy.name="a trophy";
+trophy.cmdaliases=["trophy"];
+trophy.desc="It is a shiny gold trophy.";
+trophy.weight=8;
+trophy.treasure=True;
 
 # vendor_dummy
 vendor_dummy=item();
@@ -181,6 +170,7 @@ hammer.name="a sledgehammer";
 hammer.cmdaliases=["hammer","sledgehammer"];
 hammer.desc=None;
 hammer.weight=9;
+breakingitems.append(hammer);
 
 # powercord
 powercord=item();
@@ -224,7 +214,7 @@ class printedpage(item):
 walloutlet_dummy=item();
 walloutlet_dummy.name="an outlet";
 walloutlet_dummy.cmdaliases=["outlet"];
-walloutlet_dummy.desc="It is a standard 110 volt outlet with 4 ports.";
+walloutlet_dummy.desc="It is a standard 110 volt outlet with 2 ports.";
 walloutlet_dummy.weight=0;
 walloutlet_dummy.takeable=False;
 walloutlet_dummy.silent=True;
@@ -241,9 +231,10 @@ del walloutlet_dummy_spec_putaction;
 # laptop
 laptop=item();
 laptop.name="a laptop";
-laptop.spec_gndphrase="There is a laptop resting on a table nearby.";
+laptop.spec_gndphrase="There is a laptop resting on the ground nearby.";
 laptop.cmdaliases=["laptop"];
-laptop.desc="The laptop still appears to work.\n\n(Use the \"type\" command to use computers)";
+laptop.desc="You turn the laptop over. A sticker on the back reads \"066328\".\n\
+It still appears to work.\n\n(Use the \"type\" command to use computers)";
 laptop.weight=4;
 laptop.connectedUSB=False;
 def laptop_spec_loopaction():
@@ -258,6 +249,23 @@ def laptop_spec_putaction(other):
 		print("Done.");
 laptop.spec_putaction=laptop_spec_putaction;
 del laptop_spec_putaction;
+
+# boards
+boards=item();
+boards.name="some boards";
+boards.spec_gndphrase="There are some boards nailed to the floor here.";
+boards.cmdaliases=["boards","board"];
+boards.desc="They are weakened and look like they could be broken.";
+boards.weight=10;
+def boards_spec_breakaction(other):
+	if other==hammer:
+		currentroom.items.remove(boards);
+		currentroom.openwall("down");
+		print("Done. Breaking the boards reveals a hole in the floor.\nA ladder leads down.");
+	else:
+		print("You can't use that to break these boards.");
+boards.spec_breakaction=boards_spec_breakaction;
+del boards_spec_breakaction;
 
 if debugmode:
 	print("Done.");
@@ -282,9 +290,12 @@ if debugmode:
 class vehicle:
 	# Identification
 	name="";
+	noarticle="";
 	desc="";
+	boardedphrase="";
 	cmdaliases=[];
 	desc=None;
+	opentop=False;
 	vclass=0;
 	# Position
 	xpos=None;
@@ -296,23 +307,15 @@ class vehicle:
 # bicycle
 bicycle=vehicle();
 bicycle.name="a bicycle";
+bicycle.noarticle="bicycle";
 bicycle.cmdaliases=["bicycle","bike"];
-bicycle.desc=None;
+bicycle.boardedphrase="You are on the bicycle.";
+bicycle.desc="It is a standard 10 speed bicycle.\n\n(Type \"in\" to board vehicles)";
+bicycle.opentop=True;
 bicycle.vclass=0;
-
-# bus
-bus=vehicle();
-bus.name="a bus"
-bus.cmdaliases=["bus"];
-bus.desc=None;
-bus.vclass=2;
-
-# boat
-boat=vehicle();
-boat.name="a boat";
-boat.cmdaliases=["boat"];
-boat.desc=None;
-boat.vclass=4;
+bicycle.xpos=-1;
+bicycle.ypos=8;
+bicycle.zpos=-1;
 
 if debugmode:
 	print("Done.");
@@ -371,15 +374,41 @@ comp_laptop.dirhierarchy={
 		extl="txt",
 		canopenl=True,
 		datemodl="03/30/2014",
-		timemodl="08:16 PM",
+		timemodl="08:18 PM",
 		datal="\
 Sunday, March 30, 2014, 8:14 PM\n\
 It's been nearly a month since the invasion began.\n\
 Some of us still manage to survive by hiding out in\n\
-secret passages. However, most of us are still in\n\
+secret passages. However, most of us are still\n\
 blockaded inside our rooms. Hopefully our hideout\n\
 will hold up. If not, we can at least fight back.",
-	)
+	),
+	"hideout.txt":cfile(
+		namel="hideout.txt",
+		extl="txt",
+		canopenl=True,
+		datemodl="03/14/2014",
+		timemodl="02:14 PM",
+		datal="\
+Friday, March 14, 2014, 2:11 PM\n\
+Some of the guys in charge of fortifying room 28 told\n\
+us that they built an underground hideout behind the\n\
+podium. However, we don't want to go over there, for\n\
+fear of compromising our own shelter."
+	),
+	"key.txt":cfile(
+		namel="key.txt",
+		extl="txt",
+		canopenl=True,
+		datemodl="03/24/2014",
+		timemodl="03:36 PM",
+		datal="\
+Monday, March 24, 2014, 3:34 PM\n\
+The guys in room 27 told us they were keeping the key\n\
+to some kind of secret escape hatch that the room 28\n\
+team had discovered and locked down. Will go investigate\n\
+when it becomes safe. Right now, it is not even close."
+	),
 };
 
 def compcmdinterpret(command):
@@ -431,8 +460,12 @@ def compCmdProcessor(comp,isInv):
 			else:
 				for fkey,filel in comp.dirhierarchy.items():
 					if filel.name==cargs[0]:
-						print(filel.data);
-						break;
+						if filel.canopen:
+							print(filel.data);
+							break;
+						else:
+							print("Access denied");
+							break;
 				else:
 					print("Bad command or file name");
 		
@@ -552,7 +585,7 @@ building_entrance.xpos=0;
 building_entrance.ypos=0;
 building_entrance.zpos=0;
 building_entrance.openwalls=["north"];
-building_entrance.dark=True;
+building_entrance.dark=False;
 building_entrance.items=[];
 
 ### First floor ###
@@ -586,8 +619,6 @@ e_w_hall_with_stairwell.openwalls=["west","down"];
 e_w_hall_with_stairwell.dark=True;
 lobby.items=[];
 
-
-
 ### Ground floor ###
 
 # Atrium
@@ -596,13 +627,15 @@ atrium.name="Atrium";
 atrium.desc="""\
 You are on the lower floor of a building, in
 a large, open area. To the east and west are
-hallways. There is an exit to the northeast,
-but it has been heavily boarded up. Stairs
-lead up from here."""
+hallways. However, the one to the east is
+protected by an improvised barrier. There
+is an exit to the northeast, but it has
+been heavily boarded up. Stairs lead up
+from here."""
 atrium.xpos=1;
 atrium.ypos=1;
 atrium.zpos=-1;
-atrium.openwalls=["east","west","northeast","up"];
+atrium.openwalls=["west","up"];
 atrium.dark=True;
 atrium.items=[];
 
@@ -679,14 +712,18 @@ n_s_w_junction_stairs_printer.items=[];
 stairs_area_g_nwing=room();
 stairs_area_g_nwing.name="Stairwell";
 stairs_area_g_nwing.desc="""\
-You are in a room surrounded by a metal
-framework, that appears as though it once
-contained glass. Stairs lead up from here,
-and there are doors to the south and east."""
+You are in a room surrounded wooden boards.
+You guess that this room used to be made up
+of glass, and that it had been boarded up.
+You see the destroyed remnants of what you
+assume were once stairs leading up to the
+next floor. There is a door to the south.
+To the east, there is a heavily boarded up
+door."""
 stairs_area_g_nwing.xpos=0;
 stairs_area_g_nwing.ypos=6;
 stairs_area_g_nwing.zpos=-1;
-stairs_area_g_nwing.openwalls=["east","up","south"];
+stairs_area_g_nwing.openwalls=["south"];
 stairs_area_g_nwing.dark=True;
 stairs_area_g_nwing.items=[];
 
@@ -740,6 +777,208 @@ room_20_northend.openwalls=["east","south"];
 room_20_northend.dark=True;
 room_20_northend.items=[];
 
+# Room 25
+room_25=room();
+room_25.name="Room 25";
+room_25.desc="""\
+You are in a room with tiled floors. There
+are tables and chairs strewn about, some
+positioned in blockade formation."""
+room_25.xpos=1;
+room_25.ypos=2;
+room_25.zpos=-1;
+room_25.openwalls=["west"];
+room_25.dark=True;
+room_25.items=[];
+
+# Room 26
+room_26=room();
+room_26.name="Room 26";
+room_26.desc="""\
+You are in an abandoned classroom. There
+are tables and chairs strewn about, some
+positioned in blockade formation."""
+room_26.xpos=-1;
+room_26.ypos=3;
+room_26.zpos=-1;
+room_26.openwalls=["east"];
+room_26.dark=True;
+room_26.items=[];
+
+# Room 27
+room_27=room();
+room_27.name="Room 27";
+room_27.desc="""\
+You are in an abandoned classroom. There
+are tables and chairs strewn about, some
+positioned in blockade formation."""
+room_27.xpos=1;
+room_27.ypos=3;
+room_27.zpos=-1;
+room_27.openwalls=["west"];
+room_27.dark=True;
+room_27.items=[key];
+
+# Room 28
+room_28=room();
+room_28.name="Room 28";
+room_28.desc="""\
+You are in an abandoned classroom. Unlike
+the other rooms, there seems to be a bit
+more order to the positioning of the
+furniture, almost like a fortification."""
+room_28.xpos=-1;
+room_28.ypos=4;
+room_28.zpos=-1;
+room_28.openwalls=["east"];
+room_28.dark=True;
+room_28.items=[boards];
+
+# Room 29
+room_29=room();
+room_29.name="Room 29";
+room_29.desc="""\
+You are in an abandoned classroom. There
+are tables and chairs strewn about, some
+positioned in blockade formation."""
+room_29.xpos=1;
+room_29.ypos=4;
+room_29.zpos=-1;
+room_29.openwalls=["west"];
+room_29.dark=True;
+room_29.items=[];
+
+# Room 30
+room_30=room();
+room_30.name="Room 30";
+room_30.desc="""\
+You are in an abandoned classroom. There
+are tables and chairs strewn about, some
+positioned in blockade formation."""
+room_30.xpos=-2;
+room_30.ypos=5;
+room_30.zpos=-1;
+room_30.openwalls=["east"];
+room_30.dark=True;
+room_30.items=[];
+
+# Room 32
+room_32=room();
+room_32.name="Room 32";
+room_32.desc="""\
+You are in a room that appears as though it
+used to be an office. There is a desk positioned
+on its side, as if to form a blockade against
+something."""
+room_32.xpos=-1;
+room_32.ypos=6;
+room_32.zpos=-1;
+room_32.openwalls=["south"];
+room_32.dark=True;
+room_32.items=[];
+
+### Underground passage ###
+# N/S underground passage (Just under room 28)
+n_s_passage_under28=room();
+n_s_passage_under28.name="South end of N/S underground passage";
+n_s_passage_under28.desc="""\
+You are at the south end of a north/south underground
+passage. A ladder leads up from here."""
+n_s_passage_under28.xpos=-1;
+n_s_passage_under28.ypos=4;
+n_s_passage_under28.zpos=-2;
+n_s_passage_under28.openwalls=["up","north"];
+n_s_passage_under28.dark=True;
+n_s_passage_under28.items=[];
+
+# N/S underground passage (1/2 way)
+n_s_passage_12way=room();
+n_s_passage_12way.name="N/S underground passage";
+n_s_passage_12way.desc="""\
+You are in a north/south underground passage."""
+n_s_passage_12way.xpos=-1;
+n_s_passage_12way.ypos=5;
+n_s_passage_12way.zpos=-2;
+n_s_passage_12way.openwalls=["north","south"];
+n_s_passage_12way.dark=True;
+n_s_passage_12way.items=[];
+
+# N/S underground passage (Under exit)
+n_s_passage_underexit=room();
+n_s_passage_underexit.name="North end of N/S underground passage";
+n_s_passage_underexit.desc="""\
+You are at the north end of a north/south underground
+passage. A ladder leads up a manhole."""
+n_s_passage_underexit.xpos=-1;
+n_s_passage_underexit.ypos=8;
+n_s_passage_underexit.zpos=-2;
+n_s_passage_underexit.openwalls=["south"];
+n_s_passage_underexit.lockwalls=["up"];
+n_s_passage_underexit.dark=True;
+n_s_passage_underexit.items=[];
+
+### Exit ###
+# Exit
+exitroom=room();
+exitroom.name="Field";
+exitroom.desc="""\
+You are on a large field. Very close by are many
+buildings with boarded up entrances and windows.
+There is an exposed manhole with a ladder leading
+down, and a road leading northwest."""
+exitroom.xpos=-1;
+exitroom.ypos=8;
+exitroom.zpos=-1;
+exitroom.openwalls=["down","northwest"];
+exitroom.vwalls_class0=["northwest"];
+exitroom.dark=False;
+exitroom.items=[];
+
+# NW/SE road to exit
+ne_sw_road=room();
+ne_sw_road.name="NW/SE road";
+ne_sw_road.desc="""\
+You are on a northwest/southeast road. Up ahead,
+you can see a small building in the distance."""
+ne_sw_road.xpos=-2;
+ne_sw_road.ypos=9;
+ne_sw_road.zpos=-1;
+ne_sw_road.openwalls=["northwest","southeast"];
+ne_sw_road.vwalls_class0=["northwest","southeast"];
+ne_sw_road.dark=False;
+ne_sw_road.items=[];
+
+# In front of the shack
+in_front_of_final=room();
+in_front_of_final.name="Building front";
+in_front_of_final.desc="""\
+You are at the northwest end of a northwest/
+southeast road. In front of you is a small
+fortified building. The entrance is to the
+north."""
+in_front_of_final.xpos=-3;
+in_front_of_final.ypos=10;
+in_front_of_final.zpos=-1;
+in_front_of_final.openwalls=["north","southeast"];
+in_front_of_final.vwalls_class0=["southeast"];
+in_front_of_final.dark=False;
+in_front_of_final.items=[];
+
+# The Ending Shack
+finalroom=room();
+finalroom.name="Safe house";
+finalroom.desc="""\
+You are in a small fortified building. A sign
+on the wall reads \"Congratulations! You have
+won! Place the trophy in the trophy case to
+complete the game."""
+finalroom.xpos=-3;
+finalroom.ypos=11;
+finalroom.zpos=-1;
+finalroom.openwalls=["south"];
+finalroom.dark=False;
+finalroom.items=[trophy,dropchute];
+
 if debugmode:
 	print("Done.");
 
@@ -762,21 +1001,21 @@ class portal:
 
 # tstportal1
 tstportal1=portal();
-tstportal1.xpos=2;
-tstportal1.ypos=2;
-tstportal1.zpos=0;
-tstportal1.targetx=12;
-tstportal1.targety=34;
-tstportal1.targetz=0;
+tstportal1.xpos=-1;
+tstportal1.ypos=6;
+tstportal1.zpos=-2;
+tstportal1.targetx=-1;
+tstportal1.targety=8;
+tstportal1.targetz=-2;
 
 # tstportal2
 tstportal2=portal();
-tstportal2.xpos=12;
-tstportal2.ypos=33;
-tstportal2.zpos=0;
-tstportal2.targetx=2;
-tstportal2.targety=1;
-tstportal2.targetz=0;
+tstportal2.xpos=-1;
+tstportal2.ypos=7;
+tstportal2.zpos=-2;
+tstportal2.targetx=-1;
+tstportal2.targety=5;
+tstportal2.targetz=-2;
 
 if debugmode:
 	print("Done.");
@@ -835,6 +1074,7 @@ combine=["put"];
 # Other general commands
 look=["look","l","read","examine"];
 dig=["dig"];
+breakcmd=["break"];
 compinteract=["type"];
 helpcmd=["help"];
 quit=["quit"];
@@ -887,10 +1127,12 @@ def drawLocation(inclDesc=False):
 				print(iteml.spec_gndphrase);
 			elif (not iteml.silent) and iteml.spec_gndtitle!=None:
 				print("There is "+iteml.spec_gndtitle+" here.");
-		for vehl in currentroom.vehicles:
-			print("There is "+vehl.name+" here.");
+		for vehl in vehicledict:
+			if vehl.xpos==x and vehl.ypos==y and vehl.zpos==z and vehl!=curvehicle:
+				print("There is "+vehl.name+" here.");
+		
 	if curvehicle:
-		print("You are operating "+curvehicle.name+".");
+		print(curvehicle.boardedphrase);
 	if debugmode:
 		print(x,y,z);
 		print("roomdiggables:",currentroom.diggables);
@@ -915,6 +1157,13 @@ def portalchk(xpos,ypos,zpos):
 			return portalx.targetx,portalx.targety,portalx.targetz;
 	else:
 		return xpos,ypos,zpos;
+
+# Move vehicle
+def moveVehicle(xpos,ypos,zpos):
+	if curvehicle:
+		curvehicle.xpos=xpos;
+		curvehicle.ypos=ypos;
+		curvehicle.zpos=zpos;
 
 # Score
 def scoref():
@@ -1027,6 +1276,7 @@ while True:
 			y+=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
 	elif cmd in south:
@@ -1035,6 +1285,7 @@ while True:
 			y-=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
 	elif cmd in east:
@@ -1043,6 +1294,7 @@ while True:
 			x+=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
 	elif cmd in west:
@@ -1051,6 +1303,7 @@ while True:
 			x-=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
 	
@@ -1062,6 +1315,7 @@ while True:
 			x+=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
 	elif cmd in northwest:
@@ -1071,6 +1325,7 @@ while True:
 			x-=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
 	elif cmd in southeast:
@@ -1080,6 +1335,7 @@ while True:
 			x+=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
 	elif cmd in southwest:
@@ -1089,6 +1345,7 @@ while True:
 			x-=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
 	
@@ -1099,6 +1356,7 @@ while True:
 			z+=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
 	elif cmd in down:
@@ -1107,8 +1365,32 @@ while True:
 			z-=1;
 			killchk(x,y,z);
 			x,y,z=portalchk(x,y,z);
+			moveVehicle(x,y,z);
 			currentroom=setLoc(x,y,z);
 			drawLocation();
+	
+	# Boarding vehicles
+	elif cmd in enter:
+		for vehl in vehicledict:
+			if vehl.xpos==x and vehl.ypos==y and vehl.zpos==z:
+				curvehicle=vehl;
+				if curvehicle.opentop:
+					print("You hop on the "+curvehicle.noarticle+".");
+				else:
+					print("You hop off the "+curvehicle.noarticle+".");
+				break;
+		else:
+			print("You can't go that way.");
+	elif cmd in _exit:
+		if curvehicle:
+			if curvehicle.opentop:
+				print("You hop off the "+curvehicle.noarticle+".");
+			else:
+				print("You get out of the "+curvehicle.noarticle+".")
+			curvehicle=None;
+			
+		else:
+			print("You can't go that way.")
 	
 	# Go
 	elif cmd in gocmd:
@@ -1220,7 +1502,7 @@ while True:
 						continue;
 			
 			if itemii.treasuredrop:
-				print("You hear it slide down the chute and into the distance.")
+				print(itemii.treasure_dropmsg);
 				inventory.pop(il);
 				if itemi.treasure:
 					if score<maxscore:
@@ -1282,6 +1564,27 @@ while True:
 				print("Digging here reveals nothing.");
 		else:
 			print("You have nothing with which to dig.");
+	
+	# Break
+	elif cmd in breakcmd:
+		if len(args)<1:
+			print("You must supply an object.");
+			continue;
+		else:
+			brkitem=None;
+			for itemx in breakingitems:
+				if itemx in inventory:
+					brkitem=itemx;
+					break;
+			else:
+				print("You have nothing with which to break things.");
+				continue;
+			for iteml in currentroom.items:
+				if args[0] in iteml.cmdaliases and iteml.spec_breakaction!=None:
+					iteml.spec_breakaction(itemx);
+					break;
+			else:
+				print("I don't see that here.");
 	
 	# Type
 	elif cmd in compinteract:
