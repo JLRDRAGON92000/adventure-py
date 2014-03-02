@@ -195,7 +195,6 @@ usbcable.tethered_dropmsg="You unplug the USB cable and set it by the printer.";
 # printer
 printer=item();
 printer.name="a printer";
-printer.spec_gndphrase="The printer's power cable is disconnected.";
 printer.cmdaliases=["printer"];
 printer.desc="The printer has a power cord and a USB\ncable attached to it.";
 printer.weight=200;
@@ -1253,11 +1252,6 @@ while True:
 		noitems=True;
 	else:
 		noitems=False;
-	
-	if printer_hasPower==True:
-		printer.spec_gndphrase="The printer is powered on.";
-	else:
-		printer.spec_gndphrase="The printer's power cable is disconnected.";
 	
 	### Read and interpret commands ###
 	if not skipinput:
