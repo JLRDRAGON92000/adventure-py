@@ -469,7 +469,7 @@ def compCmdProcessor(comp,isInv):
 						if filel.canopen:
 							print(filel.data);
 							break;
-						elif (not filel.canopen and filel.canprint:
+						elif (not filel.canopen) and filel.canprint:
 							print("Access allowed only for printing");
 							break;
 						else:
