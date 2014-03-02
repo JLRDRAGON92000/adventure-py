@@ -972,7 +972,7 @@ finalroom.desc="""\
 You are in a small fortified building. A sign
 on the wall reads \"Congratulations! You have
 won! Place the trophy in the trophy case to
-complete the game."""
+complete the game.\""""
 finalroom.xpos=-3;
 finalroom.ypos=11;
 finalroom.zpos=-1;
