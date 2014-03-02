@@ -202,11 +202,11 @@ printer.takeable=False;
 
 # printedpage
 class printedpage(item):
-	def __init__(self,pagecontent):
-		self.name="a printed page";
+	def __init__(self,pagetitle,pagecontent):
+		self.name="a printed page ({0})".format(pagetitle);
 		self.desc="The page says:\n"+pagecontent;
-		self.cmdaliases=["page","printed"];
-		self.weight=0;
+		self.cmdaliases=[pagetitle];
+		self.weight=0.1;
 		itemdict.append(self);
 
 # walloutlet_dummy
@@ -330,13 +330,15 @@ class cfile:
 	name="";
 	ext="";
 	canopen=True;
+	canprint=True;
 	datemod="";
 	timemod="";
 	data="";
-	def __init__(self,namel,extl,canopenl,datemodl,timemodl,datal):
+	def __init__(self,namel,extl,canopenl,canprintl,datemodl,timemodl,datal):
 		self.name=namel;
 		self.ext=extl;
 		self.canopen=canopenl;
+		self.canprint=canprintl;
 		self.datemod=datemodl;
 		self.timemod=timemodl;
 		self.data=datal;
@@ -372,6 +374,7 @@ comp_laptop.dirhierarchy={
 		namel="day28.txt",
 		extl="txt",
 		canopenl=True,
+		canprintl=True,
 		datemodl="03/30/2014",
 		timemodl="08:18 PM",
 		datal="\
@@ -386,6 +389,7 @@ will hold up. If not, we can at least fight back.",
 		namel="hideout.txt",
 		extl="txt",
 		canopenl=True,
+		canprintl=True,
 		datemodl="03/14/2014",
 		timemodl="02:14 PM",
 		datal="\
@@ -400,7 +404,8 @@ prizes for selling all those cookies."
 	"key.txt":cfile(
 		namel="key.txt",
 		extl="txt",
-		canopenl=True,
+		canopenl=False,
+		canprintl=True,
 		datemodl="03/24/2014",
 		timemodl="03:36 PM",
 		datal="\
@@ -464,6 +469,9 @@ def compCmdProcessor(comp,isInv):
 						if filel.canopen:
 							print(filel.data);
 							break;
+						elif !filel.canopen and filel.canprint:
+							print("Access allowed only for printing");
+							break;
 						else:
 							print("Access denied");
 							break;
@@ -483,8 +491,13 @@ def compCmdProcessor(comp,isInv):
 			else:
 				for fkey,filel in comp.dirhierarchy.items():
 					if filel.name==cargs[0]:
-						if comp.assoc.connectedUSB:
+						if !filel.canprint:
+							print("No print access for this file");
+							break;
+						elif comp.assoc.connectedUSB:
 							currentroom.items.append(printedpage(filel.data));
+							print("Printed 1 Page(s)");
+							print("Notice: In the game, refer to printed pages by their filenames");
 							break;
 						else:
 							print("No print device found");
