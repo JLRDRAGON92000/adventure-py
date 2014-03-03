@@ -443,7 +443,7 @@ def compCmdProcessor(comp,isInv):
 		# Read input
 		ccmdin=str(raw_input(comp.driveltr+":\\>"))+"\n";
 		ccmd,cargs=compcmdinterpret(ccmdin);
-	
+		
 		if ccmd in dirList:
 			numfiles=0;
 			numbytes=0;
