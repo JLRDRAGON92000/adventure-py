@@ -423,6 +423,17 @@ to some kind of secret escape hatch that the room 28\n\
 team had discovered and locked down. Will go investigate\n\
 when it becomes safe. Right now, it is not even close."
 	),
+	"id.txt":cfile(
+		namel="id.txt",
+		extl="txt",
+		canopenl=True,
+		canprintl=False,
+		datemodl="03/07/2014",
+		timemodl="10:35 AM",
+		datal="\
+This computer is named \"L066328-12\"\n\
+If lost, please return to the Room 20 fortification"
+	),
 };
 
 def compcmdinterpret(command):
