@@ -264,6 +264,7 @@ boards.spec_gndphrase="There are some boards nailed to the floor here.";
 boards.cmdaliases=["boards","board"];
 boards.desc="They are weakened and look like they could be broken.";
 boards.weight=10;
+boards.takeable=False;
 def boards_spec_breakaction(other):
 	if other==hammer:
 		currentroom.items.remove(boards);
