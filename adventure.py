@@ -123,6 +123,14 @@ lamp.desc=None;
 lamp.weight=4;
 lamp.treasure=False;
 
+# shovel
+shovel=item();
+shovel.name="a shovel";
+shovel.cmdaliases=["shovel"];
+shovel.desc=None;
+shovel.weight=10;
+shovel.treasure=False;
+
 # key
 key=item();
 key.name="a key";
