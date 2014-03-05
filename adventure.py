@@ -624,7 +624,7 @@ building_entrance.ypos=0;
 building_entrance.zpos=0;
 building_entrance.openwalls=["north"];
 building_entrance.dark=False;
-building_entrance.items=[];
+building_entrance.items=[lamp];
 
 ### First floor ###
 
@@ -1131,7 +1131,6 @@ if debugmode:
 	print("Done.");
 
 # Post-init variables
-inventory.append(lamp);
 currentroom=building_entrance;
 skipinput=False;
 
