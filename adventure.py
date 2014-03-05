@@ -378,8 +378,7 @@ class computer:
 			datemodl="03/07/2014",
 			timemodl="10:35 AM",
 			datal="\
-	This computer is named \""+hostname+"\"\n\
-	If lost, please return to the Room 20 fortification"
+	This computer is named \""+hostname+"\""
 		),
 	};
 	def __init__(self):
