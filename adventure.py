@@ -369,7 +369,19 @@ class computer:
 	driveltr="C"
 	drivelbl="";
 	driveser="0000-0000";
-	dirhierarchy={};
+	dirhierarchy={
+		"id.txt":cfile(
+			namel="id.txt",
+			extl="txt",
+			canopenl=True,
+			canprintl=False,
+			datemodl="03/07/2014",
+			timemodl="10:35 AM",
+			datal="\
+	This computer is named \""+hostname+"\"\n\
+	If lost, please return to the Room 20 fortification"
+		),
+	};
 	def __init__(self):
 		compdict.append(self);
 
