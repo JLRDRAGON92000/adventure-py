@@ -229,8 +229,12 @@ def walloutlet_dummy_spec_putaction(other):
 	if other==powercord:
 		printer_hasPower=True;
 		print("Done.");
+	elif other==usb:
+		print("You attempt to jam the USB cable into the outlet. Sparks\n\
+		fly out and shock you, and damage the USB cable.");
 	else:
-		print("What exactly are you trying to do anyway?");
+		print("What exactly are you trying to do anyway? Get yourself\n\
+		shocked?");
 	inventory.remove(other);
 walloutlet_dummy.spec_putaction=walloutlet_dummy_spec_putaction;
 del walloutlet_dummy_spec_putaction;
