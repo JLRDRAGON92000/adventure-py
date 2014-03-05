@@ -229,7 +229,7 @@ def walloutlet_dummy_spec_putaction(other):
 	if other==powercord:
 		printer_hasPower=True;
 		print("Done.");
-	elif other==usb:
+	elif other==usbcable:
 		print("You attempt to jam the USB cable into the outlet. Sparks\n\
 		fly out and shock you, and damage the USB cable.");
 	else:
