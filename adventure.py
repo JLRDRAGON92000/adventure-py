@@ -39,6 +39,7 @@ curvehicle=None;
 cheatmode=False;
 noclip=False;
 takeeverything=False;
+doloadlimit=True;
 godmode=False;
 
 # Environment-affecting item-spec variables
@@ -1765,9 +1766,9 @@ while True:
 		print("# AVAILABLE COMMANDS:");
 		print("# Movement: n s e w u d ne se nw sw in out");
 		print("# Inventory: take drop put inventory i");
-		print("# General: look l dig type score quit");
+		print("# General: look l dig type break score quit");
 		if debugmode:
-			print("# Cheats: cheats noclip god give setscore takeeverything spawn delete");
+			print("# Cheats: cheats noclip god give setscore takeeverything loadlimit spawn delete");
 	
 	### Command not found ###
 	
