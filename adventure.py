@@ -379,8 +379,8 @@ comp_laptop.driveltr="D";
 comp_laptop.drivelbl="OFFLINEDATA";
 comp_laptop.driveser="49F3-AC3B";
 comp_laptop.dirhierarchy={
-	"day28.txt":cfile(
-		namel="day28.txt",
+	"day27.txt":cfile(
+		namel="day27.txt",
 		extl="txt",
 		canopenl=True,
 		canprintl=True,
