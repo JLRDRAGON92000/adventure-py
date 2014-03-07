@@ -30,6 +30,7 @@ z=0;
 inventory=[];
 currentroom=None;
 nummoves=0;
+loadlimit=100;
 noitems=False;
 score=0;
 maxscore=0;
@@ -1138,6 +1139,7 @@ takeallcmd=["takeeverything"];
 spawncmd=["spawn"];
 objdelcmd=["delete"];
 godmodecmd=["god"];
+loadlcmd=["loadlimit"];
 
 if debugmode:
 	print("Done.");
@@ -1288,20 +1290,24 @@ print("");
 drawLocation();
 while True:
 	### Checks done each loop ###
+	# Run actions for items each loop
 	for iteml in inventory:
 		if iteml.spec_loopaction!=None:
 			iteml.spec_loopaction();
 	
-	if (not currentroom.dark) or (lamp in inventory):
-		nummoves=0;
-	nummoves+=1;
+	# Calculate inventory weight
 	totalweight=0;
 	for iteml in inventory:
 		totalweight+=iteml.weight;
-	if totalweight>100:
+	if totalweight>loadlimit:
 		noitems=True;
 	else:
 		noitems=False;
+	
+	# Check for dark areas and increment the grue counter
+	if (not currentroom.dark) or (lamp in inventory):
+		nummoves=0;
+	nummoves+=1;
 	
 	### Read and interpret commands ###
 	if not skipinput:
@@ -1458,7 +1464,7 @@ while True:
 		if args[0]!="all":
 			for il,iteml in enumerate(currentroom.items):
 				if args[0] in iteml.cmdaliases and (iteml.takeable or takeeverything):
-					if noitems:
+					if noitems or totalweight+iteml.weight>loadlimit:
 						print("Your load would be too heavy.");
 						break;
 					else:
@@ -1478,7 +1484,7 @@ while True:
 				if iteml.takeable or takeeverything:
 					itemf=True;
 					itemname=iteml.name[0].upper()+iteml.name[1:];
-					if noitems:
+					if noitems or totalweight+iteml.weight>loadlimit:
 						print(itemname+": Your load would be too heavy.");
 					else:
 						inventory.append(iteml);
@@ -1701,7 +1707,7 @@ while True:
 			continue;
 		else:
 			if len(args)<1:
-				print("You must supply a new score.");
+				print("You must supply a number.");
 				continue;
 			score=int(args[0]);
 			print("Done.");
@@ -1769,6 +1775,18 @@ while True:
 				godmode=False;
 				print("god OFF");
 				killchk(x,y,z);
+	
+	# Set load limit
+	elif cmd in loadlcmd:
+		if not debugmode or not cheatmode:
+			print("I don't understand that.");
+			continue;
+		else:
+			if len(args)<1:
+				print("You must supply a number.");
+				continue;
+			loadlimit=int(args[0]);
+			print("Done.");
 	
 	### Help ###
 	elif cmd in helpcmd:
