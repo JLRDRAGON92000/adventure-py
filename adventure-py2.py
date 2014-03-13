@@ -30,6 +30,7 @@ z=0;
 inventory=[];
 currentroom=None;
 nummoves=0;
+loadlimit=100;
 noitems=False;
 score=0;
 maxscore=0;
@@ -39,6 +40,7 @@ curvehicle=None;
 cheatmode=False;
 noclip=False;
 takeeverything=False;
+doloadlimit=True;
 godmode=False;
 
 # Environment-affecting item-spec variables
@@ -229,8 +231,12 @@ def walloutlet_dummy_spec_putaction(other):
 	if other==powercord:
 		printer_hasPower=True;
 		print("Done.");
+	elif other==usbcable:
+		print("You attempt to jam the USB cable into the outlet. Sparks\n\
+		fly out and shock you, and damage the USB cable.");
 	else:
-		print("What exactly are you trying to do anyway?");
+		print("What exactly are you trying to do anyway? Get yourself\n\
+		shocked?");
 	inventory.remove(other);
 walloutlet_dummy.spec_putaction=walloutlet_dummy_spec_putaction;
 del walloutlet_dummy_spec_putaction;
@@ -364,7 +370,18 @@ class computer:
 	driveltr="C"
 	drivelbl="";
 	driveser="0000-0000";
-	dirhierarchy={};
+	dirhierarchy={
+		"id.txt":cfile(
+			namel="id.txt",
+			extl="txt",
+			canopenl=True,
+			canprintl=False,
+			datemodl="03/07/2014",
+			timemodl="10:35 AM",
+			datal="\
+	This computer is named \""+hostname+"\""
+		),
+	};
 	def __init__(self):
 		compdict.append(self);
 
@@ -379,8 +396,8 @@ comp_laptop.driveltr="D";
 comp_laptop.drivelbl="OFFLINEDATA";
 comp_laptop.driveser="49F3-AC3B";
 comp_laptop.dirhierarchy={
-	"day28.txt":cfile(
-		namel="day28.txt",
+	"day27.txt":cfile(
+		namel="day27.txt",
 		extl="txt",
 		canopenl=True,
 		canprintl=True,
@@ -620,7 +637,7 @@ building_entrance.ypos=0;
 building_entrance.zpos=0;
 building_entrance.openwalls=["north"];
 building_entrance.dark=False;
-building_entrance.items=[];
+building_entrance.items=[lamp];
 
 ### First floor ###
 
@@ -1122,12 +1139,12 @@ takeallcmd=["takeeverything"];
 spawncmd=["spawn"];
 objdelcmd=["delete"];
 godmodecmd=["god"];
+loadlcmd=["loadlimit"];
 
 if debugmode:
 	print("Done.");
 
 # Post-init variables
-inventory.append(lamp);
 currentroom=building_entrance;
 skipinput=False;
 
@@ -1273,20 +1290,24 @@ print("");
 drawLocation();
 while True:
 	### Checks done each loop ###
+	# Run actions for items each loop
 	for iteml in inventory:
 		if iteml.spec_loopaction!=None:
 			iteml.spec_loopaction();
 	
-	if (not currentroom.dark) or (lamp in inventory):
-		nummoves=0;
-	nummoves+=1;
+	# Calculate inventory weight
 	totalweight=0;
 	for iteml in inventory:
 		totalweight+=iteml.weight;
-	if totalweight>100:
+	if totalweight>loadlimit:
 		noitems=True;
 	else:
 		noitems=False;
+	
+	# Check for dark areas and increment the grue counter
+	if (not currentroom.dark) or (lamp in inventory):
+		nummoves=0;
+	nummoves+=1;
 	
 	### Read and interpret commands ###
 	if not skipinput:
@@ -1443,7 +1464,7 @@ while True:
 		if args[0]!="all":
 			for il,iteml in enumerate(currentroom.items):
 				if args[0] in iteml.cmdaliases and (iteml.takeable or takeeverything):
-					if noitems:
+					if noitems or totalweight+iteml.weight>loadlimit:
 						print("Your load would be too heavy.");
 						break;
 					else:
@@ -1463,7 +1484,7 @@ while True:
 				if iteml.takeable or takeeverything:
 					itemf=True;
 					itemname=iteml.name[0].upper()+iteml.name[1:];
-					if noitems:
+					if noitems or totalweight+iteml.weight>loadlimit:
 						print(itemname+": Your load would be too heavy.");
 					else:
 						inventory.append(iteml);
@@ -1686,7 +1707,7 @@ while True:
 			continue;
 		else:
 			if len(args)<1:
-				print("You must supply a new score.");
+				print("You must supply a number.");
 				continue;
 			score=int(args[0]);
 			print("Done.");
@@ -1755,6 +1776,18 @@ while True:
 				print("god OFF");
 				killchk(x,y,z);
 	
+	# Set load limit
+	elif cmd in loadlcmd:
+		if not debugmode or not cheatmode:
+			print("I don't understand that.");
+			continue;
+		else:
+			if len(args)<1:
+				print("You must supply a number.");
+				continue;
+			loadlimit=int(args[0]);
+			print("Done.");
+	
 	### Help ###
 	elif cmd in helpcmd:
 		if debugmode:
@@ -1762,9 +1795,9 @@ while True:
 		print("# AVAILABLE COMMANDS:");
 		print("# Movement: n s e w u d ne se nw sw in out");
 		print("# Inventory: take drop put inventory i");
-		print("# General: look l dig type score quit");
+		print("# General: look l dig type break score quit");
 		if debugmode:
-			print("# Cheats: cheats noclip god give setscore takeeverything spawn delete");
+			print("# Cheats: cheats noclip god give setscore takeeverything loadlimit spawn delete");
 	
 	### Command not found ###
 	
