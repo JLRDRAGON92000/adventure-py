@@ -1,3 +1,5 @@
+#!/usr/bin/python2
+
 ### Libraries ###
 import random;
 import sys;
