@@ -1024,7 +1024,7 @@ finalroom.desc="""\
 You are in a small fortified building. A sign
 on the wall reads \"Congratulations! You have
 won! Place the trophy in the trophy case to
-complete the game.\""""
+complete the game.\" """;
 finalroom.xpos=-3;
 finalroom.ypos=11;
 finalroom.zpos=-1;
@@ -1242,14 +1242,7 @@ def killchk(xpos,ypos,zpos):
 # Command interpreter
 def cmdinterpret(command):
 	command=str(command).lower();
-	cmds="";
-	cmdl=[];
-	for cmdc in command:
-		if cmdc==" " or cmdc=="\n" or cmdc=="\t":
-			cmdl.append(cmds);
-			cmds="";
-		else:
-			cmds=cmds+cmdc;	   
+	cmdl=command.split();
 	cmd=cmdl[0];
 	args=cmdl[1:];
 	return cmd,args;
